@@ -1,0 +1,37 @@
+name: Import public site
+on:
+  push:
+    paths:
+      - .github/workflows/import-site.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify public site
+        shell: bash
+        run: |
+          set -euo pipefail
+          while read -r checksum path; do
+            path="${path#./}"
+            mkdir -p "$(dirname "$path")"
+            curl --fail --location --retry 3 --silent --show-error "https://assistance-learning.fr/$path" --output "$path"
+          done < site-files.sha256
+          sha256sum --check site-files.sha256
+          touch .nojekyll
+      - name: Commit the static site
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Import current Assistance Learning site"
+            git push
+          fi
