@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=ai-legible&utm_source=comment&utm_medium=referral&utm_id=9a9d39ae-7f62-446c-9d15-615dc6cd8055
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="hosting-provider" content="Netlify">
+<meta name="netlify-deploy" content="https://netlify.new/?utm_campaign=ai-legible&amp;utm_source=meta&amp;utm_medium=referral&amp;utm_id=9a9d39ae-7f62-446c-9d15-615dc6cd8055">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Localisation — Parcours interactif</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#111;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:white}body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:12px}.app{width:min(100%,980px)}.title{font-size:18px;font-weight:650;margin:0 0 10px;text-align:center}.player-shell{position:relative;width:100%;aspect-ratio:910/512;background:#000;overflow:hidden;border-radius:14px}video{width:100%;height:100%;object-fit:contain;display:block;background:#000}.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;pointer-events:none;overflow:auto}.overlay.visible{pointer-events:auto}.choices{width:min(96%,820px);display:grid;gap:14px;grid-template-columns:1fr 1fr}.choices[hidden],button[hidden]{display:none}button{border:0;border-radius:14px;padding:17px 18px;font:700 18px/1.3 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;background:rgba(255,255,255,.96);color:#111;box-shadow:0 6px 24px rgba(0,0,0,.28);overflow-wrap:anywhere}button:active{transform:scale(.985)}button:focus-visible{outline:3px solid #70c7ff;outline-offset:3px}.start{padding:18px 28px;font-size:20px}.hint{margin-top:10px;text-align:center;font-size:14px;opacity:.7}.error{color:#ffcfbe;text-align:center;font-size:16px}.error:empty{display:none}
+@media(max-width:620px){body{padding:0;background:#000}.app{width:100%}.title{padding:10px 10px 0;font-size:16px}.player-shell{border-radius:0;overflow:visible}.overlay{padding:10px}.choices{gap:8px;width:100%}button{font-size:14px;padding:10px 9px;border-radius:10px}.hint{padding:0 12px}}
+/* On narrow screens, long choices stay readable without hiding the film. */
+@media(max-width:420px){.overlay.has-choices{position:relative;inset:auto;background:#111}.overlay.has-choices .choices{grid-template-columns:1fr}.player-shell:has(.has-choices){aspect-ratio:auto}video{aspect-ratio:910/512}.overlay.has-choices button{font-size:16px;padding:12px}}
+body{min-height:0;padding:0}.app{width:100%;max-width:none}.player-shell{border-radius:0}
+/* Keep native playback controls reachable beneath the question overlay. */
+.overlay.visible{pointer-events:none}.overlay button{pointer-events:auto}
+
+/* Reserve real space for the questions; the film always fits what remains. */
+html,body{height:100%;height:100dvh;min-height:0;overflow:hidden}
+.app,.player-shell{height:100%;min-height:0}.player-shell{display:flex;flex-direction:column;aspect-ratio:auto!important;overflow:hidden}
+video{flex:1 1 0;min-height:0;height:0;width:100%;aspect-ratio:auto;object-fit:contain}
+.overlay.has-choices{position:relative;inset:auto;flex:0 0 auto;padding:12px;background:#111;overflow:visible}
+.choices{width:min(100%,1100px);gap:10px;grid-template-columns:1fr 1fr}
+.overlay.has-choices button{font-size:clamp(14px,1.6vw,18px);padding:12px 16px;min-height:44px}
+video::-webkit-media-controls-fullscreen-button{display:none}
+@media(max-width:620px){.overlay.has-choices{padding:8px}.overlay.has-choices .choices{grid-template-columns:1fr;gap:7px}.overlay.has-choices button{font-size:14px;padding:10px 12px;min-height:44px}}
+@media(max-height:350px) and (min-width:621px){.overlay.has-choices{padding:6px}.choices{gap:6px}.overlay.has-choices button{font-size:14px;padding:7px 10px}}
+/* Small viewports reserve usable film space alongside the existing answers. */
+@media(max-width:620px) and (max-height:430px){
+.overlay.has-choices{padding:6px}
+.overlay.has-choices .choices{grid-template-columns:1fr 1fr;gap:6px}
+.overlay.has-choices button{font-size:13px;line-height:1.25;padding:8px 7px;min-height:44px}
+}
+@media(min-width:621px) and (max-height:300px){
+.player-shell:has(.has-choices){display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,42%)}
+.player-shell:has(.has-choices) video{width:100%;height:100%}
+.overlay.has-choices button{font-size:13px;line-height:1.25;padding:8px;min-height:44px}
+}
+</style>
+</head>
+<body>
+<main class="app">
+<div class="player-shell">
+<video poster="poster.jpg" id="player" controls playsinline webkit-playsinline preload="metadata" disablepictureinpicture controlslist="nodownload noplaybackrate nofullscreen" src="media/localisation-corrigee-20260924/Video1.0.mp4" aria-label="Vidéo 1"></video>
+<div id="overlay" class="overlay visible">
+<button id="startBtn" class="start">▶ Démarrer</button>
+<div id="choices" class="choices" role="group" aria-label="Choisissez la suite" hidden></div>
+</div>
+</div>
+<p id="error" class="error" role="alert"></p>
+</main>
+<script>
+"use strict";
+const sequences = {
+  1: {beforeEnd:4, choices:[
+    ["A — Quel est votre numéro de contrat ?",2],
+    ["B — Que voyez-vous autour de vous ?",2],
+    ["C — Où vous trouvez-vous exactement ?",3],
+    ["D — Parlez-vous la langue du pays ?",2]]},
+  2: {beforeEnd:3, next:4},
+  3: {beforeEnd:2, next:4},
+  4: {beforeEnd:3, choices:[
+    ["A — Êtes-vous blessé ?",5],
+    ["B — Connaissez-vous un dépanneur ?",5],
+    ["C — Dans quelle région êtes-vous ?",6],
+    ["D — Êtes-vous en ville ou à la campagne ?",5]]},
+  5: {beforeEnd:1, next:7},
+  6: {beforeEnd:1, next:7},
+  7: {beforeEnd:7, choices:[
+    ["A — Sur quel type de route vous trouvez-vous ?",9],
+    ["B — Avez-vous croisé une église ?",8],
+    ["C — Faites-vous un trajet professionnel ?",8],
+    ["D — Avez-vous besoin d’un véhicule de remplacement ?",8]]},
+  8: {beforeEnd:1, next:10},
+  9: {beforeEnd:1, next:10},
+  10: {beforeEnd:3, choices:[
+    ["A) Voulez-vous un véhicule de remplacement ?",11],
+    ["B) Y a-t-il un point de référence autour de vous ?",12],
+    ["C) Quelle est la prochaine grande ville sur votre trajet ?",11],
+    ["D) Gênez-vous la circulation ?",11]]},
+  11: {beforeEnd:2, choices:[["Continuer",13],["Recommencer",11]]},
+  12: {beforeEnd:2, choices:[["Continuer",13],["Recommencer",12]]},
+  13: {beforeEnd:2, choices:[["Recommencer",13],["Revenir au début",1]]}
+};
+const player=document.getElementById("player");
+const overlay=document.getElementById("overlay");
+const startBtn=document.getElementById("startBtn");
+const choices=document.getElementById("choices");
+const errorBox=document.getElementById("error");
+let current=1, generation=0, frame=0, deadline=0, started=false, ready=false;
+function scheduleChoices(){
+  clearTimeout(deadline);
+  if(!ready||player.paused||player.ended)return;
+  const remaining=player.duration-sequences[current].beforeEnd-player.currentTime;
+  if(remaining<=0){updateChoices();return}
+  deadline=setTimeout(()=>{updateChoices();scheduleChoices()},Math.max(5,remaining/player.playbackRate*1000));
+}
+function hideChoices(){choices.hidden=true;overlay.classList.remove("has-choices");overlay.classList.toggle("visible",!startBtn.hidden)}
+function updateChoices(){
+  const show=started&&ready&&Number.isFinite(player.duration)&&player.currentTime>=Math.max(0,player.duration-sequences[current].beforeEnd);
+  choices.hidden=!show;
+  overlay.classList.toggle("has-choices",show);
+  overlay.classList.toggle("visible",show||!startBtn.hidden);
+}
+function renderChoices(){
+  const id=current;
+  const options=sequences[id].choices||[["Revenir au début",id],["Continuer",sequences[id].next]];
+  choices.replaceChildren();
+  for(const [label,target] of options){
+    const button=document.createElement("button");
+    button.type="button";button.textContent=label;
+    button.addEventListener("click",()=>loadVideo(target));
+    choices.appendChild(button);
+  }
+}
+function showStart(){startBtn.textContent="▶ Reprendre";startBtn.hidden=false;updateChoices()}
+async function playCurrent(){
+  const token=generation;
+  started=true;startBtn.hidden=true;updateChoices();
+  try{await player.play()}catch(e){if(token===generation&&e.name!=="AbortError"&&!player.error)showStart()}
+}
+function loadVideo(id){
+  if(!sequences[id])return;
+  generation++;cancelAnimationFrame(frame);clearTimeout(deadline);ready=false;started=false;
+  player.pause();current=id;startBtn.hidden=true;hideChoices();errorBox.textContent="";
+  renderChoices();player.setAttribute("aria-label","Vidéo "+id);
+  player.src=id===8?"media/Video-8-f53aca7f8b1a-cfr30.mp4":id===9?"media/Video-9-9e0217c5dadb-cfr30.mp4":"media/localisation-corrigee-20260924/Video"+id+".0.mp4";player.load();
+  playCurrent();
+}
+function tick(){updateChoices();if(!player.paused&&!player.ended)frame=requestAnimationFrame(tick)}
+startBtn.addEventListener("click",playCurrent);
+player.addEventListener("loadedmetadata",()=>{ready=true;updateChoices();scheduleChoices()});
+player.addEventListener("play",()=>{started=true;startBtn.hidden=true;cancelAnimationFrame(frame);frame=requestAnimationFrame(tick);scheduleChoices()});
+for(const event of ["timeupdate","seeking","seeked","ratechange","durationchange","ended","pause"])player.addEventListener(event,()=>{updateChoices();scheduleChoices()});
+player.addEventListener("error",()=>{cancelAnimationFrame(frame);ready=false;hideChoices();errorBox.textContent="La vidéo "+current+" ne peut pas être chargée. Vérifiez que son fichier MP4 accompagne le lecteur."});
+renderChoices();
+</script>
+
+</body>
+</html>
