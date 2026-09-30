@@ -22,7 +22,21 @@ jobs:
             mkdir -p "$(dirname "$path")"
             curl --fail --location --retry 3 --silent --show-error "https://assistance-learning.fr/$path" --output "$path"
           done < site-files.sha256
-          sha256sum --check site-files.sha256
+          grep -v '  ./index.html
+          touch .nojekyll
+      - name: Commit the static site
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Import current Assistance Learning site"
+            git push
+          fi
+ site-files.sha256 | sha256sum --check
+          grep -q 'LOCALISATION' index.html
           touch .nojekyll
       - name: Commit the static site
         shell: bash
